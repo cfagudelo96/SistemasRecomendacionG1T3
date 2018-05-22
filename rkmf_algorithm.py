@@ -143,9 +143,6 @@ class RKMFAlgorithm(AlgoBase):
                 for factor in range(self.n_factors):
                     # Se calcula la derivada parcial con respecto a w_u,f
                     pd_pu = (estimate - rating_loop) * self.qi[item_loop, factor] + self.reg * pu_user[factor]
-                    # Se calcula la derivada parcial con respecto a h_i,f
-                    pd_qi = (estimate - rating_loop) * pu_user[factor] + self.reg * self.qi[item_loop, factor]
-
                     # Se actualiza el valor de w_u,f con non-negative restriction
                     pu_user[factor] = max(0, pu_user[factor] - self.lr * pd_pu)
         # Se actualiza el vector del usuario en la matriz

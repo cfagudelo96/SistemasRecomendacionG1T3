@@ -1,25 +1,14 @@
 from surprise import Dataset
 from surprise.model_selection import GridSearchCV
+from surprise.model_selection import train_test_split
 
 from rkmf_algorithm import RKMFAlgorithm
 
 
 data = Dataset.load_builtin('ml-100k')
 
-param_grid = {'noise': [0.01, 0.009, 0.2, 0.3]}
-
-gs = GridSearchCV(RKMFAlgorithm, param_grid, measures=['rmse', 'mae'], cv=3)
-
-gs.fit(data)
-
-# best RMSE score
-print(gs.best_score['rmse'])
-
-# combination of parameters that gave the best RMSE score
-print(gs.best_params['rmse'])
-
-# best RMSE score
-print(gs.best_score['mae'])
-
-# combination of parameters that gave the best RMSE score
-print(gs.best_params['mae'])
+trainset, testset = train_test_split(data, test_size=0.90)
+algo = RKMFAlgorithm()
+algo.fit(trainset)
+for user_id, item_id, rating in testset:
+    algo.user_update(user_id, item_id, rating)

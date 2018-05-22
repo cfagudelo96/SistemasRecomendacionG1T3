@@ -94,3 +94,58 @@ class RKMFAlgorithm(AlgoBase):
         else:
             raise PredictionImpossible("User and item are unknown.")
         return est
+
+
+    def user_update(self, user_id, item_id, rating):
+        user = self.get_user(user_id)
+        item = self.get_item(item_id)
+        self.add_rating(user, item, rating)
+        user_ratings = self.trainset.ur[user]
+        rng = np.random.mtrand._rand
+        pu_user = rng.uniform(self.init_low, self.init_high, size=(self.n_factors))
+        for epoch in range(self.n_epochs):
+            print("Procesando epoch #" + str(epoch))
+            for item_loop, rating_loop in user_ratings:
+                # Se calcula el producto punto entre el vector
+                # correspondiente al usuario e ítem actual en la iteración
+                dot = np.dot(pu_user, self.qi[item_loop])
+                # Se calcula el estimado actual para
+                # el rating del usuario al ítem a + c * K(w_u, h_i)
+                estimate = self.kernel_a + self.kernel_c * dot
+                for factor in range(self.n_factors):
+                    # Se calcula la derivada parcial con respecto a w_u,f
+                    pd_pu = (estimate - rating_loop) * self.qi[item_loop, factor] + self.reg * pu_user[factor]
+                    # Se calcula la derivada parcial con respecto a h_i,f
+                    pd_qi = (estimate - rating_loop) * pu_user[factor] + self.reg * self.qi[item_loop, factor]
+
+                    # Se actualiza el valor de w_u,f y h_i,f con non-negative restriction
+                    pu_user[factor] = max(0, pu_user[factor] - self.lr * pd_pu)
+        self.pu[user] = pu_user
+
+
+    def get_user(self, user_id):
+        try:
+            user = self.trainset.to_inner_uid(str(user_id))
+            return user
+        except ValueError:
+            user = self.trainset.n_users
+            self.trainset._raw2inner_id_users[user_id] = user
+            self.trainset.n_users += 1
+            return user
+
+
+    def get_item(self, item_id):
+        try:
+            item = self.trainset.to_inner_iid(str(item_id))
+            return item
+        except ValueError:
+            item = self.trainset.n_items
+            self.trainset._raw2inner_id_items[item_id] = item
+            self.trainset.n_items += 1
+            return item
+
+    
+    def add_rating(self, user, item, rating):
+        self.trainset.ur[user].append((item, rating))
+        self.trainset.ir[item].append((user, rating))
+        self.trainset.n_ratings += 1

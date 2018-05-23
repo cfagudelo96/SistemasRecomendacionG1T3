@@ -1,14 +1,21 @@
+import os
 from surprise import Dataset
+from surprise import Reader
 from surprise.model_selection import GridSearchCV
-from surprise.model_selection import train_test_split
 
 from rkmf_algorithm import RKMFAlgorithm
 
 
-data = Dataset.load_builtin('ml-100k')
+path = os.path.expanduser('/Users/cfagudelo/Desktop/ratings.csv')
+reader = Reader(line_format='user item rating timestamp', sep=',', skip_lines=1, rating_scale=(0.5, 5.0))
+data = Dataset.load_from_file(path, reader=reader)
 
-trainset, testset = train_test_split(data, test_size=0.90)
-algo = RKMFAlgorithm()
-algo.fit(trainset)
-for user_id, item_id, rating in testset:
-    algo.user_update(user_id, item_id, rating)
+param_grid = {'n_factors': [50], 'n_epochs': [20], 'lr': [0.002], 'reg': [0.4]}
+
+gs = GridSearchCV(RKMFAlgorithm, param_grid, measures=['rmse', 'mae'], cv=3)
+gs.fit(data)
+
+print(gs.best_score['rmse'])
+print(gs.best_params['rmse'])
+print(gs.best_score['mae'])
+print(gs.best_params['mae'])
